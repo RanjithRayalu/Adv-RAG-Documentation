@@ -1,0 +1,367 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RAG: A Technical Overview</title>
+  <style>
+    body {
+      margin: 2rem auto;
+      max-width: 900px;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; 
+      line-height: 1.6;
+      color: #333;
+    }
+    h1, h2, h3, h4 {
+      color: #2c3e50;
+      margin-top: 2rem;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    nav ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    nav li {
+      margin: 0.5rem 0;
+    }
+    nav a {
+      text-decoration: none;
+      color: #2980b9;
+      font-weight: 500;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    code, pre {
+      background-color: #f9f9f9;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.95rem;
+    }
+    blockquote {
+      border-left: 4px solid #ccc;
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      color: #555;
+      background: #fafafa;
+    }
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #888;
+    }
+    hr {
+      margin: 2rem 0;
+      border: 0; 
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <header>
+  <h1>Advanced Retrieval-Augmented Generation (RAG): A Technical Overview</h1>
+  <p style="text-align: center; font-size: 0.9rem; color: #555;">
+    Authored by <strong>G. V. Ranjith Rayalu</strong> <br> 
+    Artificial Intelligence & Data Science Engineer
+  </p>
+</header>
+
+  <nav>
+    <ul>
+      <li><a href="#introduction">1. Introduction</a></li>
+      <li><a href="#why-rag">2. Why RAG?</a></li>
+      <li><a href="#embeddings-chunking">3. Embeddings Store &amp; Percentile-Based Chunking</a></li>
+      <li><a href="#rag-components">4. RAG Components &amp; Data Sources</a></li>
+      <li><a href="#advanced-rag">5. Advanced RAG Enhancements</a></li>
+      <li><a href="#graph-rag">6. Graph RAG</a></li>
+      <li><a href="#use-cases">7. Use Cases &amp; Future Directions</a></li>
+      <li><a href="#conclusion">8. Conclusion</a></li>
+      <li><a href="#key-takeaways">9. Key Takeaways</a></li>
+    </ul>
+  </nav>
+
+  <hr>
+
+  <!-- INTRODUCTION -->
+  <section id="introduction">
+    <h2>1. Introduction</h2>
+    <p>
+      Retrieval-Augmented Generation (RAG) has emerged as a powerful technique to mitigate hallucinations 
+      in large language models and to provide guardrails for generating factually accurate, context-rich 
+      responses. The core idea is to retrieve relevant information from a knowledge base using embeddings, 
+      TF-IDF, or a combination and then feed these retrieved pieces of text (or “chunks”) into the language 
+      model to produce answers that are grounded in real data.
+    </p>
+    <p>
+      In this document, you’ll find an overview of:
+    </p>
+    <ul>
+      <li>Why RAG can reduce hallucinations and provide guardrails</li>
+      <li>How percentile-based semantic chunking works</li>
+      <li>How different knowledge sources (NCERT, Q&amp;A pairs, ALT/PLT, etc.) are handled</li>
+      <li>How TF-IDF and embeddings can be combined to strengthen results</li>
+      <li>The concept of Graph RAG for multi-hop and global-context queries</li>
+      <li>Possible enhancements, including advanced ranking, query rewriting, and caching</li>
+    </ul>
+  </section>
+  <hr>
+
+  <!-- WHY RAG -->
+  <section id="why-rag">
+    <h2>2. Why RAG?</h2>
+    <h3>1. Reducing Hallucinations</h3>
+    <p>
+      Large language models sometimes generate plausible but incorrect information “hallucinations.” 
+      By grounding the model with vetted reference material, RAG forces reliance on real, verifiable data 
+      rather than guesswork.
+    </p>
+    <h3>2. Providing Guardrails</h3>
+    <p>
+      RAG allows you to limit the model’s output to the context found in your curated documents. This 
+      approach enforces factual consistency and can help filter out inappropriate or irrelevant content.
+    </p>
+  </section>
+  <hr>
+
+  <!-- EMBEDDINGS CHUNKING -->
+  <section id="embeddings-chunking">
+    <h2>3. Embeddings Store &amp; Percentile-Based Chunking</h2>
+    <p>
+      At the core of any RAG system is a strategy for encoding and storing text. Here’s the essence of your 
+      percentile-based approach:
+    </p>
+
+    <h3>3.1 Semantic Chunking and Distance Thresholds</h3>
+    <p>
+      • Text is split by basic punctuation into sentences.<br>
+      • Consecutive chunks are merged unless their “distance” (often cosine or Euclidean) exceeds a certain 
+        percentile threshold.<br>
+      • For example, if the distance values between consecutive sentences are 
+        <code>[0.3, 0.6, 0.9, 0.5]</code> and the 
+        95th-percentile threshold is <code>0.7</code>, only the pair with <code>0.9</code> 
+        exceeds this threshold, creating a new chunk boundary.
+    </p>
+
+    <h3>3.2 Why Use Percentiles?</h3>
+    <ul>
+      <li><strong>Dynamic Threshold:</strong> Instead of a static value, the threshold is derived from the 
+        actual data distribution. Some chapters or sections might be more repetitive or complex than others.</li>
+      <li><strong>Controlling Chunk Sizes:</strong> Too many breaks can fragment context, while too few can 
+        lead to very large chunks that dilute specificity.</li>
+    </ul>
+
+    <h3>3.3 Cosine vs. Euclidean Distance</h3>
+    <p>
+      Some workflows use both cosine and Euclidean distance to measure text similarity. 
+      Cosine distance often focuses on direction rather than magnitude, making it especially robust for text 
+      vectors where absolute length is less relevant than semantic similarity.
+    </p>
+  </section>
+  <hr>
+
+  <!-- RAG COMPONENTS & DATA SOURCES -->
+  <section id="rag-components">
+    <h2>4. RAG Components &amp; Data Sources</h2>
+    <p>
+      Your system is designed to handle multiple data sources in a unified manner:
+    </p>
+
+    <h3>4.1 Question-Answer Pairs</h3>
+    <ul>
+      <li><strong>Using OpenAI Embeddings:</strong>  
+        <br>Each chapter has a specific threshold. Any Q&amp;A pair whose similarity to the query 
+        rises above this threshold becomes a candidate. Typically, the top 3 such Q&amp;As are returned.</li>
+      <li><strong>Using TF-IDF Embeddings:</strong>  
+        <br>TF-IDF vectors each document, emphasizing rare words that appear frequently in a specific text. 
+        Top documents based on cosine similarity are retrieved.</li>
+      <li><strong>Combined Reranking:</strong>  
+        <br>A basic reranker balances GPT-based and TF-IDF-based ranks (e.g., 0.6 weight for GPT, 0.4 for TF-IDF). 
+        The final fallback formula is 
+        <code>weight × (1 / (k + rank))</code>, ensuring higher weights or lower ranks dominate.</li>
+    </ul>
+
+    <h3>4.2 NCERT</h3>
+    <p>
+      <strong>Challenges in Previous Extraction:</strong><br>
+      PDF extraction often failed in math-heavy or chemistry texts, creating messy or incomplete captures. 
+      Moreover, some end-of-chapter questions erroneously appeared in RAG outputs.
+    </p>
+    <p>
+      <strong>Solutions:</strong><br>
+      • Switched to Mathpix for high-fidelity OCR, extracting math in LaTeX and other content in Markdown.<br>
+      • Removed end-of-exercise questions from the knowledge base.<br>
+      • Implemented topic-based chunking with percentile thresholds (e.g., 90% for math, 95% otherwise).
+    </p>
+
+    <h3>4.3 ALT/PLT Content</h3>
+    <p>
+      The context in ALT/PLT documents is highly interrelated, so a simple percentile threshold (like 90%) 
+      was creating unwieldy results. You implemented:
+    </p>
+    <ul>
+      <li><strong>Hierarchical Chunking:</strong> Iterating up to higher thresholds (98%) or until chunk size 
+        is below a certain limit, ensuring no single chunk becomes too large.</li>
+      <li><strong>Limited to 4 Chunks:</strong> For manageability in the RAG pipeline.</li>
+      <li><strong>Graph RAG:</strong> An alternative where a knowledge graph can unify content and handle 
+        complex relationships, sometimes outperforming standard chunking.</li>
+    </ul>
+
+    <h3>4.4 Learning Outcomes</h3>
+    <p>
+      Many outcomes are similar. To avoid returning duplicates, K-Means clustering is applied on the 
+      retrieved outcomes. Only the cluster centers—up to five—are returned.
+    </p>
+
+    <h3>4.5 Glossary</h3>
+    <p>
+      Here, each term is combined with its definition. A high threshold (~98%) is used, preventing 
+      unrelated terms from merging into the same chunk. Future improvements might involve more advanced 
+      methods of dictionary extraction and matching.
+    </p>
+  </section>
+  <hr>
+
+  <!-- ADVANCED RAG ENHANCEMENTS -->
+  <section id="advanced-rag">
+    <h2>5. Advanced RAG Enhancements</h2>
+
+    <h3>5.1 TF-IDF Integration</h3>
+    <p>
+      <strong>Complementary Strengths:</strong>  
+      Embeddings capture semantic relationships, while TF-IDF focuses on exact term usage. Combining them 
+      provides the best of both worlds.
+    </p>
+
+    <h3>5.2 Ranker Upgrades</h3>
+    <p>
+      The current ranker uses fixed weights and ranks. Future versions could incorporate specialized 
+      rankers (e.g., BERT-based cross-encoders) to become more query-aware and yield higher-fidelity results.
+    </p>
+
+    <h3>5.3 Query Rewriting</h3>
+    <p>
+      Query rewriting merges context from previous queries, fixes grammar or spelling, and can reduce 
+      unnecessary RAG calls if the new query is similar to the old one. It ensures the user’s intent is 
+      captured accurately while retrieving the most relevant documents.
+    </p>
+
+    <h3>5.4 Model Caching</h3>
+    <p>
+      Large models like GPT cache up to a large token window. If your follow-up query reuses a large 
+      shared context, the model can reference already processed tokens—speeding up inference and improving 
+      response consistency. In practice, chunk updates and system prompt changes often break the 1024-token 
+      overlap, but selectively calling RAG only when needed can preserve more context for caching.
+    </p>
+  </section>
+  <hr>
+
+  <!-- GRAPH RAG -->
+  <section id="graph-rag">
+    <h2>6. Graph RAG</h2>
+
+    <h3>6.1 Why Graph RAG?</h3>
+    <p>
+      Graph RAG is especially helpful for global or multi-hop queries. A knowledge graph of entity-relation-entity 
+      triples can unify information from across an entire chapter or multiple documents. Queries like 
+      <em>“Explain the whole chapter”</em> or <em>“How does friction relate to sliding friction and 
+      rolling friction?”</em> benefit greatly from a graph-based approach.
+    </p>
+
+    <h3>6.2 Basic Knowledge Graph</h3>
+    <p>
+      An entity-relation-entity structure forms the backbone of Graph RAG. By searching for an entity in the graph, 
+      the system retrieves connected nodes and edges, culminating in a relevant subgraph of knowledge.
+    </p>
+
+    <h3>6.3 Analysis &amp; Observations</h3>
+    <ul>
+      <li><strong>Benefits:</strong> High recall and a more “global” view of the content. Ideal for large 
+        texts and complex queries.</li>
+      <li><strong>Downsides:</strong> Potentially higher token usage due to larger contextual retrieval. 
+        Entity extraction must be accurate or valuable details can be lost.</li>
+      <li><strong>Mitigations:</strong> Combine with embedding-based matching to prune large subgraphs, 
+        and use rankers to filter out less relevant edges.</li>
+    </ul>
+  </section>
+  <hr>
+
+  <!-- USE CASES & FUTURE DIRECTIONS -->
+  <section id="use-cases">
+    <h2>7. Use Cases &amp; Future Directions</h2>
+
+    <h3>7.1 Summarize Entire Chapters</h3>
+    <p>
+      Graph RAG with hierarchical chunking can provide global summaries. Alternatively, 
+      precomputed abstractive or extractive summaries can quickly answer such queries.
+    </p>
+
+    <h3>7.2 Handling Multi-Hop or Complex Queries</h3>
+    <p>
+      Graph-based indexing simplifies referencing multiple sections of large texts. Combining chunk-level 
+      embeddings with a knowledge graph further refines retrieval for complex, multi-step questions.
+    </p>
+
+    <h3>7.3 Hard Datasets &amp; Edge Cases</h3>
+    <p>
+      Evaluate performance on:  
+    </p>
+    <ul>
+      <li>Summarize queries testing global text comprehension</li>
+      <li>Multi-hop queries that demand interconnection of multiple segments</li>
+      <li>Queries with no direct answer in the corpus</li>
+    </ul>
+
+    <h3>7.4 Practical Enhancements</h3>
+    <ul>
+      <li><strong>Global Hierarchical Summaries:</strong> A consolidated node holding the gist of the entire chapter.</li>
+      <li><strong>More Sophisticated Rankers or Re-Rankers:</strong> BERT-based or cross-encoder models to judge relevance accurately.</li>
+      <li><strong>Larger Knowledge Graphs:</strong> Continuous updates and expansions as new data arrives.</li>
+    </ul>
+  </section>
+  <hr>
+
+  <!-- CONCLUSION -->
+  <section id="conclusion">
+    <h2>8. Conclusion</h2>
+    <p>
+      Your RAG system intricately combines percentile-based semantic chunking, TF-IDF, and embedding-based 
+      retrieval to ensure high-quality, contextually accurate answers. In specialized domains like NCERT, 
+      mathematics, and ALT/PLT content, you’ve tailored chunking thresholds, introduced hierarchical 
+      chunking, and leveraged improved OCR (Mathpix) for more accurate text extraction.
+    </p>
+    <p>
+      Graph RAG represents a significant leap for handling broader, multi-faceted queries by relying on 
+      entity–relation networks. While it improves recall and context synergy, it demands careful token 
+      management and accurate entity extraction.
+    </p>
+    <p>
+      Overall, your system’s flexibility—through query rewriting, caching, and combined rankers—positions 
+      it well for professional-level usage in Q&amp;A retrieval, entire chapter summarization, and beyond.
+    </p>
+  </section>
+  <hr>
+
+  <!-- KEY TAKEAWAYS -->
+  <section id="key-takeaways">
+    <h2>9. Key Takeaways</h2>
+    <ul>
+      <li><strong>Guardrails &amp; Factual Consistency:</strong> RAG grounds responses in real 
+        documents, reducing hallucinations.</li>
+      <li><strong>Percentile-Based Chunking:</strong> Adapts chunking thresholds to each chapter’s 
+        distance distribution, balancing context breadth with precision.</li>
+      <li><strong>TF-IDF + Embeddings:</strong> Merging both methods ensures coverage of rare, 
+        keyword-specific queries and broader semantic matches.</li>
+      <li><strong>Hierarchical &amp; Graph Approaches:</strong> Ideal for highly interrelated 
+        content and multi-hop questions.</li>
+      <li><strong>Future Directions:</strong> More intelligent rankers, caching strategies, 
+        query rewriting, advanced graph building, and summarization metrics.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>&copy; G . V. Ranjith Rayalu</p>
+  </footer>
+</body>
+</html>
